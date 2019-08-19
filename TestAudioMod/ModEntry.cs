@@ -71,6 +71,10 @@ namespace Pathoschild.Stardew.TestAudioMod
                     this.SetAudio(this.Source, "wind"); // supports Frequency; GameContent cue only works after loading a save
                     break;
 
+                case SButton.D4:
+                    this.SetAudio(this.Source, "stillnessInTheRain"); // mod sound only
+                    break;
+
 
                 // set frequency
                 case SButton.Up:
