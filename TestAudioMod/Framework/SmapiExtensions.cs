@@ -36,8 +36,8 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework
             // load unpacked audio file
             if (typeof(T) != typeof(IModCue) && typeof(T) != typeof(ICue))
                 throw new ContentLoadException($"Failed loading asset '{key}' from content manager: can't read file with extension '{file.Extension}' as type '{typeof(T)}'; must be type '{typeof(ICue)}' or '{typeof(IModCue)}'.");
-            SoundEffect effect = OggLoader.Load(file.FullName);
-            return (T)(object)new SoundEffectCue(key, effect);
+            SoundEffectCue effect = new SoundEffectCue(file.Name, file.FullName);
+            return (T)(object)effect;
         }
 
 

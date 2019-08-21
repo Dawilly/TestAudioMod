@@ -75,6 +75,9 @@ namespace Pathoschild.Stardew.TestAudioMod
                     this.SetAudio(this.Source, "stillnessInTheRain"); // mod sound only
                     break;
 
+                case SButton.D5:
+                    this.SetAudio(this.Source, "flute");
+                    break;
 
                 // set frequency
                 case SButton.Up:
