@@ -19,19 +19,19 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         /// <summary>Unwrapped QFactor</summary>
         private float qFactor;
 
-        /// <summary>Coefficient Variable. Represents a coefficient within a transfer function H(z).</summary>
+        /// <summary>Coefficient Variable. Represents a coefficient within a transfer function H(s).</summary>
         protected double a0;
 
-        /// <summary>Coefficient Variable. Represents a coefficient within a transfer function H(z).</summary>
+        /// <summary>Coefficient Variable. Represents a coefficient within a transfer function H(s).</summary>
         protected double a1;
 
-        /// <summary>Coefficient Variable. Represents a coefficient within a transfer function H(z).</summary>
+        /// <summary>Coefficient Variable. Represents a coefficient within a transfer function H(s).</summary>
         protected double a2;
 
-        /// <summary>Coefficient Variable. Represents a coefficient within a transfer function H(z).</summary>
+        /// <summary>Coefficient Variable. Represents a coefficient within a transfer function H(s).</summary>
         protected double a3;
 
-        /// <summary>Coefficient Variable. Represents a coefficient within a transfer function H(z).</summary>
+        /// <summary>Coefficient Variable. Represents a coefficient within a transfer function H(s).</summary>
         protected double a4;
 
         /// <summary>State Variable. Represents the previous signal computation.</summary>
