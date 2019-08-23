@@ -40,8 +40,17 @@ namespace Pathoschild.Stardew.TestAudioMod
         {
             helper.Events.Input.ButtonPressed += this.Input_ButtonPressed;
             helper.Events.GameLoop.UpdateTicked += this.OnUpdateTicked;
+
+            //helper.Events.GameLoop.OneSecondUpdateTicked += this.Test;
+
+
         }
 
+        private void Test(object sender, OneSecondUpdateTickedEventArgs e) {
+            ICue cue = Game1.currentSong;
+            if (cue != null)
+                this.Monitor.Log($"Music Frequency: {cue.GetVariable("Frequency")} ");
+        }
 
         /*********
         ** Private methods
