@@ -3,6 +3,7 @@ using System.Threading;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using NVorbis;
+using Pathoschild.Stardew.TestAudioMod.OpenAL;
 
 namespace Pathoschild.Stardew.TestAudioMod.Framework {
     /// <summary>An audio cue which wraps an Ogg Vorbis file.</summary>
@@ -11,11 +12,13 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         /*********
         ** Fields
         *********/
+        internal int SourceId;
+
         /// <summary>The underlying Ogg Vorbis audio reader.</summary>
         private readonly VorbisReader Reader;
 
         /// <summary>The underlying sound effect.</summary>
-        private readonly DynamicSoundEffectInstance Effect;
+        private readonly OpenALSound Effect;
 
         /// <summary>A background thread which manages the playback state, or <c>null</c> if not currently playing.</summary>
         private Thread PlaybackThread;
@@ -38,9 +41,6 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
 
         /// <summary>The default bit depth for audio used by XNA and XACT.</summary>
         private const int BitDepth = 16;
-
-        /// <summary>The number of bytes XNA expects for any given data point pertaining to the audio data.</summary>
-        private readonly int ValidBlockAlign;
 
         /*********
         ** Accessors
@@ -77,12 +77,12 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
             this.Name = name;
 
             this.Reader = new VorbisReader(path);
-            this.Effect = new DynamicSoundEffectInstance(this.Reader.SampleRate, (AudioChannels)this.Reader.Channels);
-            this.SampleBuffer = new byte[this.Effect.GetSampleSizeInBytes(TimeSpan.FromMilliseconds(500))];
-            this.VorbisBuffer = new float[this.SampleBuffer.Length / 2];
+            //this.Effect = new DynamicSoundEffectInstance(this.Reader.SampleRate, (AudioChannels)this.Reader.Channels);
+            //this.SampleBuffer = new byte[this.Effect.GetSampleSizeInBytes(TimeSpan.FromMilliseconds(500))];
+            //this.VorbisBuffer = new float[this.SampleBuffer.Length / 2];
 
-            this.Effect.BufferNeeded += (s, e) => this.NeedBufferHandle.Set(); // when a buffer is needed, set our handle so the helper thread will read in more data
-            this.ValidBlockAlign = (this.Reader.Channels * SoundEffectCue.BitDepth) / 8;
+            //this.Effect.BufferNeeded += (s, e) => this.NeedBufferHandle.Set(); // when a buffer is needed, set our handle so the helper thread will read in more data
+            //this.ValidBlockAlign = (this.Reader.Channels * SoundEffectCue.BitDepth) / 8;
         }
 
         /// <summary>Free, release, and reset unmanaged resources.</summary>
@@ -92,57 +92,30 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
 
         /// <summary>Begin playing the audio.</summary>
         public void Play() {
-            this.Stop(AudioStopOptions.Immediate);
 
-            lock (this.Effect)
-                this.Effect.Play();
-
-            this.StartThread();
         }
 
         /// <summary>Pause the audio playback.</summary>
         public void Pause() {
-            lock (this.Effect)
-                this.Effect.Pause();
+
         }
 
         /// <summary>Resume the audio playback.</summary>
         public void Resume() {
-            lock (this.Effect)
-                this.Effect.Resume();
+
         }
 
         /// <summary>Stop the audio playback, if applicable.</summary>
         /// <param name="options">When to stop the audio.</param>
         public void Stop(AudioStopOptions options) {
-            lock (this.Effect) {
-                switch (options) {
-                    case AudioStopOptions.AsAuthored:
-                        if (!this.Effect.IsDisposed)
-                            this.IsLooped = false;
-                        break;
 
-                    case AudioStopOptions.Immediate:
-                        if (!this.Effect.IsDisposed)
-                            this.Effect.Stop();
-
-                        this.Reader.DecodedTime = TimeSpan.Zero;
-
-                        if (this.PlaybackThread != null) {
-                            // set the handle to stop our thread
-                            this.PlaybackWaitHandle.Set();
-                            this.PlaybackThread = null;
-                        }
-                        break;
-                }
-            }
         }
 
         /// <summary>Set a predefined audio variable.</summary>
         /// <param name="key">The variable key.</param>
         /// <param name="value">The value to set.</param>
         public void SetVariable(string key, int value) {
-            this.SetVariable(key, (float)value);
+
         }
 
         /// <summary>Set a predefined audio variable.</summary>
@@ -151,11 +124,11 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         public void SetVariable(string key, float value) {
             switch (key) {
                 case "Volume":
-                    this.Effect.Volume = MathHelper.Clamp(value / 100, 0, 1);
+                    //this.Effect.Volume = MathHelper.Clamp(value / 100, 0, 1);
                     break;
 
                 case "Pitch":
-                    this.Effect.Pitch = MathHelper.Clamp((value - SoundEffectCue.GameMiddlePitchValue) / SoundEffectCue.GameMiddlePitchValue, -1, 1); // see remarks on GameMiddlePitchValue
+                    //this.Effect.Pitch = MathHelper.Clamp((value - SoundEffectCue.GameMiddlePitchValue) / SoundEffectCue.GameMiddlePitchValue, -1, 1); // see remarks on GameMiddlePitchValue
                     break;
 
                 case "Frequency":
@@ -218,71 +191,71 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         /// <summary>Manage the audio stream while it's playing.</summary>
         // This is where the magic happens.
         private void StreamThread() {
-            while (!this.Effect.IsDisposed) {
-                // sleep until we need a buffer
-                while (!this.Effect.IsDisposed && !this.PlaybackWaitHandle.WaitOne(0) && !this.NeedBufferHandle.WaitOne(0))
-                    Thread.Sleep(50);
+            //while (!this.Effect.IsDisposed) {
+            //    // sleep until we need a buffer
+            //    while (!this.Effect.IsDisposed && !this.PlaybackWaitHandle.WaitOne(0) && !this.NeedBufferHandle.WaitOne(0))
+            //        Thread.Sleep(50);
 
-                // if the thread is waiting to exit, leave
-                if (this.PlaybackWaitHandle.WaitOne(0))
-                    break;
+            //    // if the thread is waiting to exit, leave
+            //    if (this.PlaybackWaitHandle.WaitOne(0))
+            //        break;
 
-                // ensure the effect isn't disposed
-                lock (this.Effect) {
-                    if (this.Effect.IsDisposed)
-                        break;
-                }
+            //    // ensure the effect isn't disposed
+            //    lock (this.Effect) {
+            //        if (this.Effect.IsDisposed)
+            //            break;
+            //    }
 
-                // read the next chunk of data
-                int samplesRead = this.Reader.ReadSamples(this.VorbisBuffer, 0, this.VorbisBuffer.Length);
+            //    // read the next chunk of data
+            //    int samplesRead = this.Reader.ReadSamples(this.VorbisBuffer, 0, this.VorbisBuffer.Length);
                 
 
-                // out of data and looping? reset the reader and read again
+            //    // out of data and looping? reset the reader and read again
 
-                // It seems this.Effects.IsLooped is not supported (or implemented?). Thus we'll rely
-                // on SoundEffectCue's own IsLooped.
-                if (samplesRead == 0 && this.IsLooped) {
-                    this.Reader.DecodedTime = TimeSpan.Zero;
-                    samplesRead = this.Reader.ReadSamples(this.VorbisBuffer, 0, this.VorbisBuffer.Length);
-                }
+            //    // It seems this.Effects.IsLooped is not supported (or implemented?). Thus we'll rely
+            //    // on SoundEffectCue's own IsLooped.
+            //    if (samplesRead == 0 && this.IsLooped) {
+            //        this.Reader.DecodedTime = TimeSpan.Zero;
+            //        samplesRead = this.Reader.ReadSamples(this.VorbisBuffer, 0, this.VorbisBuffer.Length);
+            //    }
 
-                // Check to see if we're consuming the correct size of data chunks.
-                int blockCheck = samplesRead % this.ValidBlockAlign;
+            //    // Check to see if we're consuming the correct size of data chunks.
+            //    int blockCheck = samplesRead % this.ValidBlockAlign;
 
-                if (samplesRead > 0) {
-                    for (int i = 0; i < samplesRead; i++) {
-                        short sValue = (short)Math.Max(Math.Min(short.MaxValue * this.VorbisBuffer[i], short.MaxValue), short.MinValue);
-                        this.SampleBuffer[i * 2] = (byte)(sValue & 0xff);
-                        this.SampleBuffer[i * 2 + 1] = (byte)((sValue >> 8) & 0xff);
-                    }
+            //    if (samplesRead > 0) {
+            //        for (int i = 0; i < samplesRead; i++) {
+            //            short sValue = (short)Math.Max(Math.Min(short.MaxValue * this.VorbisBuffer[i], short.MaxValue), short.MinValue);
+            //            this.SampleBuffer[i * 2] = (byte)(sValue & 0xff);
+            //            this.SampleBuffer[i * 2 + 1] = (byte)((sValue >> 8) & 0xff);
+            //        }
 
-                    // If we are not consuming the correct size of data chunks, add on empty blocks
-                    // that will not emit sound. This should be no more than 3 addition bytes at most
-                    // and may not matter, nor be heard, by the user.
-                    if (blockCheck != 0) {
-                        for (int i = 0; i < blockCheck; i++) {
-                            this.SampleBuffer[samplesRead + i] = 0;
-                        }
+            //        // If we are not consuming the correct size of data chunks, add on empty blocks
+            //        // that will not emit sound. This should be no more than 3 addition bytes at most
+            //        // and may not matter, nor be heard, by the user.
+            //        if (blockCheck != 0) {
+            //            for (int i = 0; i < blockCheck; i++) {
+            //                this.SampleBuffer[samplesRead + i] = 0;
+            //            }
 
-                        samplesRead += blockCheck;
-                    }
+            //            samplesRead += blockCheck;
+            //        }
 
-                    // submit our buffers
-                    lock (this.Effect) {
-                        // ensure the effect isn't disposed
-                        if (this.Effect.IsDisposed)
-                            break;
+            //        // submit our buffers
+            //        lock (this.Effect) {
+            //            // ensure the effect isn't disposed
+            //            if (this.Effect.IsDisposed)
+            //                break;
 
-                        // Submit Channel 1
-                        this.Effect.SubmitBuffer(this.SampleBuffer, 0, samplesRead);
-                        // Submit Channel 2
-                        this.Effect.SubmitBuffer(this.SampleBuffer, samplesRead, samplesRead);
-                    }
-                }
+            //            // Submit Channel 1
+            //            this.Effect.SubmitBuffer(this.SampleBuffer, 0, samplesRead);
+            //            // Submit Channel 2
+            //            this.Effect.SubmitBuffer(this.SampleBuffer, samplesRead, samplesRead);
+            //        }
+            //    }
 
-                // reset our handle
-                this.NeedBufferHandle.Reset();
-            }
+            //    // reset our handle
+            //    this.NeedBufferHandle.Reset();
+            //}
         }
     }
 }
