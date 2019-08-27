@@ -12,7 +12,10 @@ namespace Pathoschild.Stardew.TestAudioMod.OpenAL {
 
         public IntPtr NativeLibrary => this.loader.NativeLibrary;
 
-        public AL() {
+        //There should only ever be one.
+        public static AL OpenAL { get; } = new AL();
+
+        private AL() {
             this.loader = new Loader();
             this.nativeCalls = new ALCalls(this.loader);
         }
@@ -25,7 +28,7 @@ namespace Pathoschild.Stardew.TestAudioMod.OpenAL {
         private unsafe void GenerateBuffers(int size, out int[] buffers) {
             buffers = new int[size];
 
-            //This would be disasterous if this was moved. Lock it in place.
+            //It would be disasterous if this was moved. Lock it in place.
             fixed (int* ptr = &buffers[0]) {
                 this.nativeCalls.alGenBuffers(size, ptr);
             }
