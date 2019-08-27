@@ -24,7 +24,7 @@ namespace Pathoschild.Stardew.TestAudioMod
 
         /// <summary>The frequency to play.</summary>
         /// <remarks>This is a percentage value(?), 0 to 100, default 0.</remarks>
-        private int Frequency = 0;
+        private int Frequency = 100;
 
         /// <summary>The pitch to play.</summary>
         /// <remarks>This is a relative value(?), 0 to 2400, default 1200.</remarks>
@@ -41,15 +41,30 @@ namespace Pathoschild.Stardew.TestAudioMod
             helper.Events.Input.ButtonPressed += this.Input_ButtonPressed;
             helper.Events.GameLoop.UpdateTicked += this.OnUpdateTicked;
 
-            //helper.Events.GameLoop.OneSecondUpdateTicked += this.Test;
+            helper.ConsoleCommands.Add("filterparam",
+                                       "",
+                                       this.SetFilterParam);
 
 
         }
 
-        private void Test(object sender, OneSecondUpdateTickedEventArgs e) {
-            ICue cue = Game1.currentSong;
-            if (cue != null)
-                this.Monitor.Log($"Music Frequency: {cue.GetVariable("Frequency")} ");
+        private void SetFilterParam(string caller, string[] args) {
+            if (!(this.Cue is IModCue)) return;
+            IModCue cue = (IModCue)this.Cue;
+
+            if (args.Length == 0) {
+                this.Monitor.Log($"Filter Params - Freq: {cue.FilterFrequency}, QFactor: {cue.FilterQFactor}.");
+                return;
+            }
+
+            if (args.Length < 2) return;
+
+            double newValue = double.Parse(args[1]);
+            if (args[0] == "freq") {
+                cue.FilterFrequency = newValue;
+            } else if (args[0] == "q") {
+                cue.FilterQFactor = newValue;
+            }
         }
 
         /*********
@@ -78,6 +93,11 @@ namespace Pathoschild.Stardew.TestAudioMod
 
                 case SButton.D3:
                     this.SetAudio(this.Source, "wind"); // supports Frequency; GameContent cue only works after loading a save
+                    if (this.Source == ContentSource.ModFolder) {
+                        IModCue cue = (IModCue)this.Cue;
+                        cue.EnableFilter(FilterType.LowPass, 3000, 0.707);
+                        cue.StaticQFactor = true;
+                    }
                     break;
 
                 case SButton.D4:

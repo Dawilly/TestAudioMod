@@ -15,9 +15,9 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
     /// </summary>
     internal abstract class BiquadraticFilter {
         /// <summary>Unwrapped Frequency</summary>
-        private float hertz;
+        protected double Fc;
         /// <summary>Unwrapped QFactor</summary>
-        private float qFactor;
+        protected double qFactor;
 
         /// <summary>Coefficient Variable. Represents a coefficient within a transfer function H(s).</summary>
         protected double a0;
@@ -29,25 +29,19 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         protected double a2;
 
         /// <summary>Coefficient Variable. Represents a coefficient within a transfer function H(s).</summary>
-        protected double a3;
+        protected double b1;
 
         /// <summary>Coefficient Variable. Represents a coefficient within a transfer function H(s).</summary>
-        protected double a4;
+        protected double b2;
 
         /// <summary>State Variable. Represents the previous signal computation.</summary>
-        protected double ZA_1;
+        protected double Z1;
 
         /// <summary>State Variable. Represents the previous of the previous signal computation.</summary>
-        protected double ZA_2;
-
-        /// <summary>State Variable. Represents the previous signal computation.</summary>
-        protected double ZB_1;
-
-        /// <summary>State Variable. Represents the previous of the previous signal computation.</summary>
-        protected double ZB_2;
+        protected double Z2;
 
         /// <summary>The Quality Factor of the filter.</summary>
-        public float QFactor {
+        public double QFactor {
             get { return this.qFactor; }
             set {
                 if (value <= 0) {
@@ -59,13 +53,13 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         }
 
         /// <summary>A provided frequency for the filter. Used for centre, cutoff, etc.</summary>
-        public float Frequency {
-            get { return this.hertz; }
+        public double Frequency {
+            get { return this.Fc; }
             set {
-                if (this.SampleRate < value * 2) {
-                    throw new ArgumentOutOfRangeException("The SampleRate must be at least twice the size of Frequency.");
+                if (value <= 0) {
+                    throw new ArgumentOutOfRangeException("Frequency must be greater than 0");
                 }
-                this.hertz = value;
+                this.Fc = value;
                 this.CalculateCoefficients();
             }
         }
@@ -74,17 +68,32 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         public int SampleRate { get; private set; }
 
         /// <summary>
+        /// 
+        /// </summary>
+        public BiquadraticFilter() {
+            this.a0 = 1.0;
+            this.a1 = 0.0;
+            this.a2 = 0.0;
+            this.b1 = 0.0;
+            this.b2 = 0.0;
+            this.Fc = 0.5;
+            this.QFactor = 0.707;
+            this.Z1 = 0.0;
+            this.Z2 = 0.0;
+        }
+
+        /// <summary>
         /// Constructor for a Biquadractic Filter Class.
         /// </summary>
         /// <param name="SampleRate">The Sampling Rate to be processed through the filter.</param>
         /// <param name="Frequency">The Frequency the filter will operate on (centre, cutoff, etc).</param>
         /// <param name="QFactor">THe Quality Factor of the filter.</param>
-        public BiquadraticFilter(int SampleRate, float Frequency, float QFactor) {
+        public BiquadraticFilter(int SampleRate, double Frequency, double QFactor) {
             // Validate the values.
             if (SampleRate <= 0) {
                 throw new ArgumentOutOfRangeException("SampleRate must be greater than 0");
             } else if (Frequency <= 0) {
-                throw new ArgumentOutOfRangeException("CuttOff Frequency must be greater than 0");
+                throw new ArgumentOutOfRangeException("Frequency must be greater than 0");
             } else if (QFactor <= 0) {
                 throw new ArgumentOutOfRangeException("Q-Factor must be greater than 0");
             }
@@ -92,15 +101,22 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
             this.SampleRate = SampleRate;
             this.Frequency = Frequency;
             this.QFactor = QFactor;
+
+            this.CalculateCoefficients();
+        }
+
+        public void Adjust(double Fc, double Q) {
+            this.Frequency = Fc;
+            this.QFactor = Q;
         }
 
         /// <summary>Process (Pass) a single point of a signal.</summary>
         /// <param name="input">A signal data point.</param>
         /// <returns>The processed data point.</returns>
         public float Process(float input) {
-            double results = this.a0 * input + this.a1 * this.ZA_1 + this.a2 * this.ZA_2 - this.a3 * this.ZB_1 - this.a4 * this.ZB_2;
-            this.UpdatePreviousSignals(input, results);
-            return (float)results;
+            double output = input * this.a0 + this.Z1;
+            this.UpdatePreviousSignals(input, output);
+            return (float)output;
         }
 
         /// <summary>Process (Pass) an array of signal data points.</summary>
@@ -115,11 +131,8 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         /// <param name="input">The signal data point being processed.</param>
         /// <param name="output">The processed data point.</param>
         protected void UpdatePreviousSignals(float input, double output) {
-            this.ZA_2 = this.ZA_1;
-            this.ZA_1 = input;
-            //--
-            this.ZB_2 = this.ZB_1;
-            this.ZB_1 = output;
+            this.Z1 = input * this.a1 + this.Z2 - this.b1 * output;
+            this.Z2 = input * this.a2 - this.b2 * output;
         }
 
         /// <summary>

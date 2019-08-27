@@ -42,6 +42,11 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         /// <summary>The number of bytes XNA expects for any given data point pertaining to the audio data.</summary>
         private readonly int ValidBlockAlign;
 
+        private BiquadraticFilter Filter;
+
+        private double filterFrequency;
+        private double qFactor;
+
         /*********
         ** Accessors
         *********/
@@ -66,6 +71,32 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         /// <summary>The audio playback state.</summary>
         public SoundState State => this.Effect.State;
 
+        public double FilterFrequency {
+            get {
+                return this.filterFrequency * this.FilterPercentage;
+            }
+            set {
+                if (!this.FilterEnabled) return;
+                this.filterFrequency = value;
+                this.Filter.Frequency = this.FilterFrequency;
+            }
+        }
+        public double FilterQFactor {
+            get {
+                if (this.StaticQFactor) return this.qFactor;
+                return this.qFactor * this.FilterPercentage;
+            }
+            set {
+                if (!this.FilterEnabled) return;
+                this.qFactor = value;
+                this.Filter.QFactor = this.FilterQFactor;
+            }
+        }
+
+        public double FilterPercentage { get; private set; }
+
+        public bool FilterEnabled => this.Filter != null;
+        public bool StaticQFactor { get; set; }
 
         /*********
         ** Public methods
@@ -78,7 +109,9 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
 
             this.Reader = new VorbisReader(path);
             this.Effect = new DynamicSoundEffectInstance(this.Reader.SampleRate, (AudioChannels)this.Reader.Channels);
-            this.SampleBuffer = new byte[this.Effect.GetSampleSizeInBytes(TimeSpan.FromMilliseconds(500))];
+
+            TimeSpan sampleSize = (this.Reader.TotalTime >= TimeSpan.FromMilliseconds(500)) ? TimeSpan.FromMilliseconds(500) : this.Reader.TotalTime;
+            this.SampleBuffer = new byte[this.Effect.GetSampleSizeInBytes(sampleSize)];
             this.VorbisBuffer = new float[this.SampleBuffer.Length / 2];
 
             this.Effect.BufferNeeded += (s, e) => this.NeedBufferHandle.Set(); // when a buffer is needed, set our handle so the helper thread will read in more data
@@ -159,8 +192,10 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                     break;
 
                 case "Frequency":
+                    this.FilterPercentage = MathHelper.Clamp((value / 100), 0, 1);
+                    if (this.Filter == null) return;
+                    this.Filter.Adjust(this.FilterFrequency, this.FilterQFactor);
                     return;
-                    //throw new NotImplementedException();
 
                 default:
                     throw new NotSupportedException($"Unknown audio variable '{key}'.");
@@ -178,14 +213,34 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                     return (this.Effect.Pitch * SoundEffectCue.GameMiddlePitchValue) + SoundEffectCue.GameMiddlePitchValue; // see remarks on GameMiddlePitchValue
 
                 case "Frequency":
-                    return -1;
-                    //throw new NotImplementedException();
+                    return (float) this.FilterPercentage;
 
                 default:
                     throw new NotSupportedException($"Unknown audio variable '{key}'.");
             }
         }
 
+        public void EnableFilter(FilterType type, double Fc, double Q) {
+            this.FilterPercentage = 1.0;
+            this.filterFrequency = Fc;
+            this.qFactor = Q;
+
+            switch (type) {
+                case FilterType.LowPass:
+                    this.Filter = new LowpassFilter(this.Reader.SampleRate, Fc, Q);
+                    break;
+                case FilterType.HighPass:
+                    this.Filter = new HighpassFilter(this.Reader.SampleRate, Fc, Q);
+                    break;
+            }
+
+            return;
+        }
+
+        public void DisableFilter() {
+            this.Filter = null;
+            return;
+        }
 
         /*********
         ** Protected methods
@@ -236,7 +291,6 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                 // read the next chunk of data
                 int samplesRead = this.Reader.ReadSamples(this.VorbisBuffer, 0, this.VorbisBuffer.Length);
                 
-
                 // out of data and looping? reset the reader and read again
 
                 // It seems this.Effects.IsLooped is not supported (or implemented?). Thus we'll rely
@@ -250,6 +304,13 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                 int blockCheck = samplesRead % this.ValidBlockAlign;
 
                 if (samplesRead > 0) {
+                    // Process through filter first
+
+                    if (this.FilterEnabled) {
+                        this.Filter.Process(this.VorbisBuffer);
+                    }
+
+                    //Convert to bytes
                     for (int i = 0; i < samplesRead; i++) {
                         short sValue = (short)Math.Max(Math.Min(short.MaxValue * this.VorbisBuffer[i], short.MaxValue), short.MinValue);
                         this.SampleBuffer[i * 2] = (byte)(sValue & 0xff);

@@ -14,5 +14,19 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework
 
         /// <summary>Whether to loop the audio when it reaches the end.</summary>
         bool IsLooped { get; set; }
+
+        double FilterFrequency { get; set; }
+
+        double FilterQFactor { get; set; }
+
+        double FilterPercentage { get; }
+
+        bool FilterEnabled { get; }
+
+        bool StaticQFactor { get; set; }
+
+        void EnableFilter(FilterType type, double fc, double q);
+
+        void DisableFilter();
     }
 }
