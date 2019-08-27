@@ -110,8 +110,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
             this.Reader = new VorbisReader(path);
             this.Effect = new DynamicSoundEffectInstance(this.Reader.SampleRate, (AudioChannels)this.Reader.Channels);
 
-            TimeSpan sampleSize = (this.Reader.TotalTime >= TimeSpan.FromMilliseconds(500)) ? TimeSpan.FromMilliseconds(500) : this.Reader.TotalTime;
-            this.SampleBuffer = new byte[this.Effect.GetSampleSizeInBytes(sampleSize)];
+            this.SampleBuffer = new byte[this.Effect.GetSampleSizeInBytes(TimeSpan.FromMilliseconds(500))];
             this.VorbisBuffer = new float[this.SampleBuffer.Length / 2];
 
             this.Effect.BufferNeeded += (s, e) => this.NeedBufferHandle.Set(); // when a buffer is needed, set our handle so the helper thread will read in more data
@@ -305,7 +304,6 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
 
                 if (samplesRead > 0) {
                     // Process through filter first
-
                     if (this.FilterEnabled) {
                         this.Filter.Process(this.VorbisBuffer);
                     }
