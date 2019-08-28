@@ -231,6 +231,9 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                 case FilterType.HighPass:
                     this.Filter = new HighpassFilter(this.Reader.SampleRate, Fc, Q);
                     break;
+                case FilterType.Bandpass:
+                    this.Filter = new BandpassFilter(this.Reader.SampleRate, Fc, Q);
+                    break;
             }
 
             return;

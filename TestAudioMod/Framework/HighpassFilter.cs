@@ -12,7 +12,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         }
 
         protected override void CalculateCoefficients() {
-            double K = Math.Tan(MathHelper.Pi * this.Fc);
+            double K = Math.Tan(MathHelper.Pi * this.Fc / this.SampleRate);
             double normal = 1 / (1 + K / this.QFactor + K * K);
             this.a0 = 1 * normal;
             this.a1 = -2 * this.a0;

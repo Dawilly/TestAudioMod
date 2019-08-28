@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 namespace Pathoschild.Stardew.TestAudioMod.Framework {
     public enum FilterType {
         LowPass,
-        HighPass
+        HighPass,
+        Bandpass
     }
 }

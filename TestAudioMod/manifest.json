@@ -1,6 +1,6 @@
 {
     "Name": "Test Audio Mod",
-    "Author": "Pathoschild",
+    "Author": "Pathoschild & SgtPickles",
     "Version": "1.0.0-alpha.201908101420",
     "MinimumApiVersion": "3.0.0-beta",
     "Description": "A dev mod used to prototype the SMAPI audio API.",
