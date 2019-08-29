@@ -30,7 +30,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         private readonly float[] VorbisBuffer;
 
         /// <summary>A buffer equivalent to <see cref="VorbisBuffer"/> converted to bytes for .</summary>
-        private readonly byte[] SampleBuffer;
+        private byte[] SampleBuffer;       
 
         /// <summary>The middle and default pitch value in the game code.</summary>
         /// <remarks>The game uses pitch values between 0 and 2400 with 1200 as the default, contrasted to <see cref="DynamicSoundEffectInstance"/> which uses -1 to 1 with 0 as the default.</remarks>
@@ -46,6 +46,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
 
         private double filterFrequency;
         private double qFactor;
+        private bool shortMode;
 
         /*********
         ** Accessors
@@ -112,6 +113,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
 
             this.SampleBuffer = new byte[this.Effect.GetSampleSizeInBytes(TimeSpan.FromMilliseconds(500))];
             this.VorbisBuffer = new float[this.SampleBuffer.Length / 2];
+            this.shortMode = (TimeSpan.FromMilliseconds(500) > this.Reader.TotalTime) ? true : false;
 
             this.Effect.BufferNeeded += (s, e) => this.NeedBufferHandle.Set(); // when a buffer is needed, set our handle so the helper thread will read in more data
             this.ValidBlockAlign = (this.Reader.Channels * SoundEffectCue.BitDepth) / 8;
@@ -125,7 +127,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         /// <summary>Begin playing the audio.</summary>
         public void Play() {
             this.Stop(AudioStopOptions.Immediate);
-
+            //this.Effect.IsLooped = true;
             lock (this.Effect)
                 this.Effect.Play();
 
@@ -212,7 +214,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                     return (this.Effect.Pitch * SoundEffectCue.GameMiddlePitchValue) + SoundEffectCue.GameMiddlePitchValue; // see remarks on GameMiddlePitchValue
 
                 case "Frequency":
-                    return (float) this.FilterPercentage;
+                    return (float) this.FilterPercentage * 100;
 
                 default:
                     throw new NotSupportedException($"Unknown audio variable '{key}'.");
@@ -267,10 +269,11 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
             if (this.PlaybackThread == null) {
                 this.PlaybackWaitHandle.Reset();
                 this.NeedBufferHandle.Reset();
-                this.PlaybackThread = new Thread(this.StreamThread);
+                this.PlaybackThread =  new Thread(this.StreamThread);
                 this.PlaybackThread.Start();
             }
         }
+
 
         /// <summary>Manage the audio stream while it's playing.</summary>
         // This is where the magic happens.
@@ -292,14 +295,10 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
 
                 // read the next chunk of data
                 int samplesRead = this.Reader.ReadSamples(this.VorbisBuffer, 0, this.VorbisBuffer.Length);
-                
-                // out of data and looping? reset the reader and read again
 
-                // It seems this.Effects.IsLooped is not supported (or implemented?). Thus we'll rely
-                // on SoundEffectCue's own IsLooped.
-                if (samplesRead == 0 && this.IsLooped) {
+                // out of data and looping? reset the reader and read again
+                if (this.Reader.DecodedTime == this.Reader.TotalTime && this.IsLooped) {
                     this.Reader.DecodedTime = TimeSpan.Zero;
-                    samplesRead = this.Reader.ReadSamples(this.VorbisBuffer, 0, this.VorbisBuffer.Length);
                 }
 
                 // Check to see if we're consuming the correct size of data chunks.

@@ -108,6 +108,15 @@ namespace Pathoschild.Stardew.TestAudioMod
                     this.SetAudio(this.Source, "flute");
                     break;
 
+                case SButton.D6:
+                    this.SetAudio(this.Source, "rain");
+                    if (this.Source == ContentSource.ModFolder) {
+                        IModCue cue = (IModCue)this.Cue;
+                        cue.EnableFilter(FilterType.LowPass, 20000, 2.90);
+                        cue.StaticQFactor = true;
+                    }
+                    break;
+
                 // set frequency
                 case SButton.Up:
                 case SButton.Down:
