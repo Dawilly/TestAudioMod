@@ -45,7 +45,9 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         private BiquadraticFilter Filter;
 
         private double filterFrequency;
+
         private double qFactor;
+
         private bool shortMode;
 
         /*********
@@ -269,7 +271,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
             if (this.PlaybackThread == null) {
                 this.PlaybackWaitHandle.Reset();
                 this.NeedBufferHandle.Reset();
-                this.PlaybackThread =  new Thread(this.StreamThread);
+                this.PlaybackThread = new Thread(this.StreamThread);
                 this.PlaybackThread.Start();
             }
         }
@@ -303,6 +305,11 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
 
                 // Check to see if we're consuming the correct size of data chunks.
                 int blockCheck = samplesRead % this.ValidBlockAlign;
+                int loops = 1;
+
+                if (this.shortMode) {
+                    loops = 500 / this.Reader.TotalTime.Milliseconds;
+                }
 
                 if (samplesRead > 0) {
                     // Process through filter first
@@ -334,10 +341,12 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                         if (this.Effect.IsDisposed)
                             break;
 
-                        // Submit Channel 1
-                        this.Effect.SubmitBuffer(this.SampleBuffer, 0, samplesRead);
-                        // Submit Channel 2
-                        this.Effect.SubmitBuffer(this.SampleBuffer, samplesRead, samplesRead);
+                        for (int i = 0; i < loops; i++) {
+                            // Submit Channel 1
+                            this.Effect.SubmitBuffer(this.SampleBuffer, 0, samplesRead);
+                            // Submit Channel 2
+                            this.Effect.SubmitBuffer(this.SampleBuffer, samplesRead, samplesRead);
+                        }
                     }
                 }
 
