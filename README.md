@@ -12,9 +12,10 @@ action             | control         | notes
 :----------------- | :-------------- | :----
 disable audio      | `1`             |
 play `SinWave` cue | `2`             | Supports pitch changes.
-play `wind` cue    | `3`             | Supports frequency changes. Vanilla cue only works after loading a save.
+play `wind` cue    | `3`             | Supports frequency changes (Lowpass). Starts at 3kHz. Vanilla cue only works after loading a save.
 play song sample   | `4`             | Mod source only. Plays a rendition of _stillness in the rain_ by MissCoriel.
 play `flute` cue   | `5`             |
+play `rain` cue    | `6`             | Supports frequency changes (Lowpass). Starts at 20kHz. Vanilla cue only works after loading a save.
 change source      | `Tab`           | Toggles between the vanilla game sound and an equivalent `.ogg` file.
 change pitch       | `left`, `right` |
-change frequency   | `up`, `down`    | Not implemented for mod sounds yet.
+change frequency   | `up`, `down`    | Changes the frequency cutoff/centre when a filter is applied.
