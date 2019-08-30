@@ -50,6 +50,8 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
 
         private bool shortMode;
 
+        private byte[] ShortBuffer;
+
         /*********
         ** Accessors
         *********/
@@ -114,6 +116,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
             this.Effect = new DynamicSoundEffectInstance(this.Reader.SampleRate, (AudioChannels)this.Reader.Channels);
 
             this.SampleBuffer = new byte[this.Effect.GetSampleSizeInBytes(TimeSpan.FromMilliseconds(500))];
+            this.ShortBuffer = new byte[this.Effect.GetSampleSizeInBytes(TimeSpan.FromMilliseconds(500))];
             this.VorbisBuffer = new float[this.SampleBuffer.Length / 2];
             this.shortMode = (TimeSpan.FromMilliseconds(500) > this.Reader.TotalTime) ? true : false;
 
@@ -324,6 +327,16 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                         this.SampleBuffer[i * 2 + 1] = (byte)((sValue >> 8) & 0xff);
                     }
 
+                    if (this.shortMode) {
+                        int offset = 0;
+                        for (int i = 0; i < loops; i++) {
+                            Array.Copy(this.SampleBuffer, 0, this.ShortBuffer, offset, 2 * samplesRead);
+                            offset += 2 * samplesRead;
+                        }
+                        samplesRead = samplesRead * loops;
+                        blockCheck = samplesRead % this.ValidBlockAlign;
+                    }
+
                     // If we are not consuming the correct size of data chunks, add on empty blocks
                     // that will not emit sound. This should be no more than 3 addition bytes at most
                     // and may not matter, nor be heard, by the user.
@@ -341,7 +354,10 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                         if (this.Effect.IsDisposed)
                             break;
 
-                        for (int i = 0; i < loops; i++) {
+                        if (this.shortMode) {
+                            this.Effect.SubmitBuffer(this.ShortBuffer, 0, samplesRead);
+                            this.Effect.SubmitBuffer(this.ShortBuffer, samplesRead, samplesRead);
+                        } else {
                             // Submit Channel 1
                             this.Effect.SubmitBuffer(this.SampleBuffer, 0, samplesRead);
                             // Submit Channel 2
