@@ -42,14 +42,20 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         /// <summary>The number of bytes XNA expects for any given data point pertaining to the audio data.</summary>
         private readonly int ValidBlockAlign;
 
+        /// <summary>The Biquad class to conduct filtering on the audio.</summary>
         private BiquadraticFilter Filter;
 
+        /// <summary>The unwrapped Filter Frequency value.</summary>
         private double filterFrequency;
 
+        /// <summary>The unwrapped Quality Factor value.</summary>
         private double qFactor;
 
+        /// <summary>Used to determine if the audio clip is very short, requiring additional operations to prevent clipping/gaps.</summary>
         private bool shortMode;
 
+        /// <summary>To-do: Refactor to get rid of this.</summary>
+        //TO-DO: Refactor to get rid of this.
         private byte[] ShortBuffer;
 
         /*********
@@ -76,9 +82,10 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         /// <summary>The audio playback state.</summary>
         public SoundState State => this.Effect.State;
 
+        /// <summary>The frequency (in Hz) the filter will use as a cutoff / centre.</summary>
         public double FilterFrequency {
             get {
-                return this.filterFrequency * this.FilterPercentage;
+                return this.filterFrequency * this.FrequencyPercentage;
             }
             set {
                 if (!this.FilterEnabled) return;
@@ -86,10 +93,12 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                 this.Filter.Frequency = this.FilterFrequency;
             }
         }
+
+        /// <summary>The Quality Factor (unitless) the filter will use during filter operations.</summary>
         public double FilterQFactor {
             get {
                 if (this.StaticQFactor) return this.qFactor;
-                return this.qFactor * this.FilterPercentage;
+                return this.qFactor * this.QPercentage;
             }
             set {
                 if (!this.FilterEnabled) return;
@@ -98,9 +107,17 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
             }
         }
 
-        public double FilterPercentage { get; private set; }
+        /// <summary>The percentage of the frequency to use as a cutoff / centre.</summary>
+        public double FrequencyPercentage { get; private set; }
 
+        /// <summary>The percentage of the quality factor to use during filter operations.</summary>
+        public double QPercentage { get; private set; }
+
+        /// <summary>Determines if a filter has been enabled to the sound effect.</summary>
         public bool FilterEnabled => this.Filter != null;
+
+        /// <summary>TO-DO: Refactor to remove this.</summary>
+        //TO-DO: Refactor to remove this.
         public bool StaticQFactor { get; set; }
 
         /*********
@@ -198,7 +215,13 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                     break;
 
                 case "Frequency":
-                    this.FilterPercentage = MathHelper.Clamp((value / 100), 0, 1);
+                    this.FrequencyPercentage = MathHelper.Clamp((value / 100), 0, 1);
+                    if (this.Filter == null) return;
+                    this.Filter.Adjust(this.FilterFrequency, this.FilterQFactor);
+                    return;
+
+                case "QFactor":
+                    this.QPercentage = MathHelper.Clamp((value / 100), 0, 1);
                     if (this.Filter == null) return;
                     this.Filter.Adjust(this.FilterFrequency, this.FilterQFactor);
                     return;
@@ -219,17 +242,28 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                     return (this.Effect.Pitch * SoundEffectCue.GameMiddlePitchValue) + SoundEffectCue.GameMiddlePitchValue; // see remarks on GameMiddlePitchValue
 
                 case "Frequency":
-                    return (float) this.FilterPercentage * 100;
+                    return (float) this.FilterFrequency * 100;
+
+                case "QFactor":
+                    return (float) this.FilterQFactor * 100;
 
                 default:
                     throw new NotSupportedException($"Unknown audio variable '{key}'.");
             }
         }
 
-        public void EnableFilter(FilterType type, double Fc, double Q) {
-            this.FilterPercentage = 1.0;
+        /// <summary>Attachs a filter, altering how the instance sounds when played.</summary>
+        /// <param name="type">The type of filter to be applied.</param>
+        /// <param name="Fc">The cutoff/centre frequency to operate at.</param>
+        /// <param name="FcPercent">The inital percentage of the frequency to apply.</param>
+        /// <param name="Q">The quality factor to operate at.</param>
+        /// <param name="QPercent">The initial percentage of the quality factor to apply.</param>
+        public void EnableFilter(FilterType type, double Fc, double FcPercent, double Q, double QPercent) {
             this.filterFrequency = Fc;
             this.qFactor = Q;
+
+            this.FilterFrequency = FcPercent;
+            this.FilterQFactor = QPercent;
 
             switch (type) {
                 case FilterType.LowPass:
@@ -241,11 +275,21 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                 case FilterType.Bandpass:
                     this.Filter = new BandpassFilter(this.Reader.SampleRate, Fc, Q);
                     break;
+                default:
+                    throw new Exception("Invalid Filter Type");
             }
-
             return;
         }
 
+        /// <summary>Attachs a filter, altering how the instance sounds when played. Initializes Fc and Q to operate at 100%</summary>
+        /// <param name="type">The type of filter to be applied.</param>
+        /// <param name="Fc">The cutoff/centre frequency to operate at.</param>
+        /// <param name="Q">The quality factor to operate at.</param>
+        public void EnableFilter(FilterType type, double Fc, double Q) {
+            this.EnableFilter(type, Fc, 1.0, Q, 1.0);
+        }
+
+        /// <summary>Removes the filter, if applicable.</summary>
         public void DisableFilter() {
             this.Filter = null;
             return;
@@ -270,6 +314,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                 GC.SuppressFinalize(this);
         }
 
+        /// <summary>Bootstrapper to the StreamThread.</summary>
         private void StartThread() {
             if (this.PlaybackThread == null) {
                 this.PlaybackWaitHandle.Reset();
@@ -327,6 +372,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                         this.SampleBuffer[i * 2 + 1] = (byte)((sValue >> 8) & 0xff);
                     }
 
+                    //If the audio clip is *very* short, replicate it a few times. This will avoid clipping/gaps if looping.
                     if (this.shortMode) {
                         int offset = 0;
                         for (int i = 0; i < loops; i++) {
