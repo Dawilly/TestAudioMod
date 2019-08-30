@@ -54,10 +54,6 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         /// <summary>Used to determine if the audio clip is very short, requiring additional operations to prevent clipping/gaps.</summary>
         private bool shortMode;
 
-        /// <summary>To-do: Refactor to get rid of this.</summary>
-        //TO-DO: Refactor to get rid of this.
-        private byte[] ShortBuffer;
-
         /*********
         ** Accessors
         *********/
@@ -97,7 +93,6 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         /// <summary>The Quality Factor (unitless) the filter will use during filter operations.</summary>
         public double FilterQFactor {
             get {
-                if (this.StaticQFactor) return this.qFactor;
                 return this.qFactor * this.QPercentage;
             }
             set {
@@ -116,10 +111,6 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         /// <summary>Determines if a filter has been enabled to the sound effect.</summary>
         public bool FilterEnabled => this.Filter != null;
 
-        /// <summary>TO-DO: Refactor to remove this.</summary>
-        //TO-DO: Refactor to remove this.
-        public bool StaticQFactor { get; set; }
-
         /*********
         ** Public methods
         *********/
@@ -133,7 +124,6 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
             this.Effect = new DynamicSoundEffectInstance(this.Reader.SampleRate, (AudioChannels)this.Reader.Channels);
 
             this.SampleBuffer = new byte[this.Effect.GetSampleSizeInBytes(TimeSpan.FromMilliseconds(500))];
-            this.ShortBuffer = new byte[this.Effect.GetSampleSizeInBytes(TimeSpan.FromMilliseconds(500))];
             this.VorbisBuffer = new float[this.SampleBuffer.Length / 2];
             this.shortMode = (TimeSpan.FromMilliseconds(500) > this.Reader.TotalTime) ? true : false;
 
@@ -226,6 +216,10 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                     this.Filter.Adjust(this.FilterFrequency, this.FilterQFactor);
                     return;
 
+                case "Pan":
+                    this.Effect.Pan = MathHelper.Clamp(value / 100, -1, 1);
+                    break;
+
                 default:
                     throw new NotSupportedException($"Unknown audio variable '{key}'.");
             }
@@ -247,6 +241,9 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                 case "QFactor":
                     return (float) this.FilterQFactor * 100;
 
+                case "Pan":
+                    return this.Effect.Pan * 100;
+
                 default:
                     throw new NotSupportedException($"Unknown audio variable '{key}'.");
             }
@@ -262,8 +259,8 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
             this.filterFrequency = Fc;
             this.qFactor = Q;
 
-            this.FilterFrequency = FcPercent;
-            this.FilterQFactor = QPercent;
+            this.FrequencyPercentage = FcPercent;
+            this.QPercentage = QPercent;
 
             switch (type) {
                 case FilterType.LowPass:
@@ -373,10 +370,10 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                     }
 
                     //If the audio clip is *very* short, replicate it a few times. This will avoid clipping/gaps if looping.
-                    if (this.shortMode) {
-                        int offset = 0;
-                        for (int i = 0; i < loops; i++) {
-                            Array.Copy(this.SampleBuffer, 0, this.ShortBuffer, offset, 2 * samplesRead);
+                    if (this.shortMode && loops > 1) {
+                        int offset = 2 * samplesRead;
+                        for (int i = 1; i < loops; i++) {
+                            Array.Copy(this.SampleBuffer, 0, this.SampleBuffer, offset, 2 * samplesRead);
                             offset += 2 * samplesRead;
                         }
                         samplesRead = samplesRead * loops;
@@ -400,15 +397,10 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                         if (this.Effect.IsDisposed)
                             break;
 
-                        if (this.shortMode) {
-                            this.Effect.SubmitBuffer(this.ShortBuffer, 0, samplesRead);
-                            this.Effect.SubmitBuffer(this.ShortBuffer, samplesRead, samplesRead);
-                        } else {
-                            // Submit Channel 1
-                            this.Effect.SubmitBuffer(this.SampleBuffer, 0, samplesRead);
-                            // Submit Channel 2
-                            this.Effect.SubmitBuffer(this.SampleBuffer, samplesRead, samplesRead);
-                        }
+                        // Submit Channel 1
+                        this.Effect.SubmitBuffer(this.SampleBuffer, 0, samplesRead);
+                        // Submit Channel 2
+                        this.Effect.SubmitBuffer(this.SampleBuffer, samplesRead, samplesRead);
                     }
                 }
 

@@ -30,6 +30,7 @@ namespace Pathoschild.Stardew.TestAudioMod
         /// <remarks>This is a relative value(?), 0 to 2400, default 1200.</remarks>
         private int Pitch = 1200;
 
+        private float Pan = 0f;
 
         /*********
         ** Public methods
@@ -40,32 +41,6 @@ namespace Pathoschild.Stardew.TestAudioMod
         {
             helper.Events.Input.ButtonPressed += this.Input_ButtonPressed;
             helper.Events.GameLoop.UpdateTicked += this.OnUpdateTicked;
-
-            helper.ConsoleCommands.Add("filterparam",
-                                       "",
-                                       this.SetFilterParam);
-
-
-        }
-
-        //TO-DO: Remove
-        private void SetFilterParam(string caller, string[] args) {
-            if (!(this.Cue is IModCue)) return;
-            IModCue cue = (IModCue)this.Cue;
-
-            if (args.Length == 0) {
-                this.Monitor.Log($"Filter Params - Freq: {cue.FilterFrequency}, QFactor: {cue.FilterQFactor}.");
-                return;
-            }
-
-            if (args.Length < 2) return;
-
-            double newValue = double.Parse(args[1]);
-            if (args[0] == "freq") {
-                cue.FilterFrequency = newValue;
-            } else if (args[0] == "q") {
-                cue.FilterQFactor = newValue;
-            }
         }
 
         /*********
@@ -97,7 +72,6 @@ namespace Pathoschild.Stardew.TestAudioMod
                     if (this.Source == ContentSource.ModFolder) {
                         IModCue cue = (IModCue)this.Cue;
                         cue.EnableFilter(FilterType.LowPass, 3000, 0.707);
-                        cue.StaticQFactor = true;
                     }
                     break;
 
@@ -114,7 +88,6 @@ namespace Pathoschild.Stardew.TestAudioMod
                     if (this.Source == ContentSource.ModFolder) {
                         IModCue cue = (IModCue)this.Cue;
                         cue.EnableFilter(FilterType.LowPass, 20000, 2.90);
-                        cue.StaticQFactor = true;
                     }
                     break;
 
@@ -149,6 +122,8 @@ namespace Pathoschild.Stardew.TestAudioMod
                 sound.SetVariable("Volume", 100);
                 sound.SetVariable("Frequency", this.Frequency);
                 sound.SetVariable("Pitch", this.Pitch);
+                if (sound is IModCue) sound.SetVariable("Pan", this.Pan);
+
                 if (!sound.IsPlaying)
                     sound.Play();
 

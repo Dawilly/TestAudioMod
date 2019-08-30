@@ -30,9 +30,6 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework
         /// <summary>Determines if a filter has been enabled to the sound effect.</summary>
         bool FilterEnabled { get; }
 
-        /// <summary>TO-DO: Refactor to remove this.</summary>
-        bool StaticQFactor { get; set; }
-
         /// <summary>Attachs a filter, altering how the instance sounds when played.</summary>
         /// <param name="type">The type of filter to be applied.</param>
         /// <param name="Fc">The cutoff/centre frequency to operate at.</param>
