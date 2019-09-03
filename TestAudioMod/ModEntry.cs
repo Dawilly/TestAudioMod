@@ -30,6 +30,8 @@ namespace Pathoschild.Stardew.TestAudioMod
         /// <remarks>This is a relative value(?), 0 to 2400, default 1200.</remarks>
         private int Pitch = 1200;
 
+        /// <summary>The panning effect to apply to the sound.</summary>
+        /// <remarks>This value ranges from -1 to 1. Where -1 only plays out of the left speaker, 1 only plays out of the right speaker.</remarks>
         private float Pan = 0f;
 
         /*********

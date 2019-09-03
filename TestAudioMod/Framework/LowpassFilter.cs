@@ -20,9 +20,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
 
         }
 
-        /// <summary>
-        /// Calculates the coefficients to produce the needed values for a Lowpass Filter.
-        /// </summary>
+        /// <summary>Calculates the coefficients to produce the needed values for a Lowpass Filter.</summary>
         protected override void CalculateCoefficients() {
             double K = Math.Tan(MathHelper.Pi * this.Fc / this.SampleRate);
             double normal = 1 / (1 + K / this.QFactor + K * K);

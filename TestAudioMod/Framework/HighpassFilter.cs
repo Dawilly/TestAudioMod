@@ -7,10 +7,17 @@ using Microsoft.Xna.Framework;
 
 namespace Pathoschild.Stardew.TestAudioMod.Framework {
     internal class HighpassFilter : BiquadraticFilter {
+        /// <summary>
+        /// Constructor for a High Pass Filter
+        /// </summary>
+        /// <param name="SampleRate">The Sampling Rate to be processed through the filter.</param>
+        /// <param name="Frequency">The Frequency the filter will operate.</param>
+        /// <param name="QFactor">The QFactor of the filter.</param>
         public HighpassFilter(int SampleRate, double Frequency, double Q) : base(SampleRate, Frequency, Q) {
 
         }
 
+        /// <summary>Calculates the coefficients to produce the needed values for a Highpass Filter.</summary>
         protected override void CalculateCoefficients() {
             double K = Math.Tan(MathHelper.Pi * this.Fc / this.SampleRate);
             double normal = 1 / (1 + K / this.QFactor + K * K);

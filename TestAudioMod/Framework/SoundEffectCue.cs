@@ -7,13 +7,13 @@ using Pathoschild.Stardew.TestAudioMod.Framework.OggFile;
 using Pathoschild.Stardew.TestAudioMod.Framework.WaveFile;
 
 namespace Pathoschild.Stardew.TestAudioMod.Framework {
-    /// <summary>An audio cue which wraps an Ogg Vorbis file.</summary>
+    /// <summary>An audio cue which wraps an <see cref="ISoundFileReader"/> type file.</summary>
     /// <remarks>Originally derived from <a href="https://gist.github.com/nickgravelyn/5580531"/>, with various improvements and fixes for SMAPI.</remarks>
     internal class SoundEffectCue : IModCue {
         /*********
         ** Fields
         *********/
-        /// <summary>The underlying Ogg Vorbis audio reader.</summary>
+        /// <summary>The underlying audio file reader.</summary>
         private readonly ISoundFileReader Reader;
 
         /// <summary>The underlying sound effect.</summary>
@@ -29,9 +29,9 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         private readonly EventWaitHandle NeedBufferHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
 
         /// <summary>A buffer which contains the audio sample currently being played from the full clip.</summary>
-        private readonly float[] VorbisBuffer;
+        private readonly float[] RawBuffer;
 
-        /// <summary>A buffer equivalent to <see cref="VorbisBuffer"/> converted to bytes for .</summary>
+        /// <summary>A buffer equivalent to <see cref="RawBuffer"/> converted to bytes for .</summary>
         private byte[] SampleBuffer;       
 
         /// <summary>The middle and default pitch value in the game code.</summary>
@@ -118,7 +118,8 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         *********/
         /// <summary>Construct an instance.</summary>
         /// <param name="name">The global name for the audio clip.</param>
-        /// <param name="path">The absolute path to the <c>.ogg</c> file to load.</param>
+        /// <param name="path">The absolute path to the audio file to load.</param>
+        /// <param name="type">The audio file type to be loaded.</param>
         public SoundEffectCue(string name, string path, FileType type) {
             this.Name = name;
 
@@ -126,21 +127,11 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
             this.Effect = new DynamicSoundEffectInstance(this.Reader.SampleRate, (AudioChannels)this.Reader.Channels);
 
             this.SampleBuffer = new byte[this.Effect.GetSampleSizeInBytes(TimeSpan.FromMilliseconds(500))];
-            this.VorbisBuffer = new float[this.SampleBuffer.Length / 2];
+            this.RawBuffer = new float[this.SampleBuffer.Length / 2];
             this.shortMode = (TimeSpan.FromMilliseconds(500) > this.Reader.TotalTime) ? true : false;
 
             this.Effect.BufferNeeded += (s, e) => this.NeedBufferHandle.Set(); // when a buffer is needed, set our handle so the helper thread will read in more data
             this.ValidBlockAlign = (this.Reader.Channels * SoundEffectCue.BitDepth) / 8;
-        }
-
-        private ISoundFileReader SetReader(string path, FileType type) {
-            switch (type) {
-                case FileType.Ogg:
-                    return new OggReader(path);
-                case FileType.Wave:
-                    return new WaveReader(path);
-            }
-            return null;
         }
 
         /// <summary>Free, release, and reset unmanaged resources.</summary>
@@ -323,6 +314,23 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                 GC.SuppressFinalize(this);
         }
 
+        /*********
+        ** Private methods
+        *********/
+        /// <summary>Creates an instance of an <see cref="ISoundFileReader"/> based on the <see cref="FileType"/></summary>
+        /// <param name="path">The absolute path to the audio file to load.</param>
+        /// <param name="type">The audio file type.</param>
+        /// <returns></returns>
+        private ISoundFileReader SetReader(string path, FileType type) {
+            switch (type) {
+                case FileType.Ogg:
+                    return new OggReader(path);
+                case FileType.Wave:
+                    return new WaveReader(path);
+            }
+            return null;
+        }
+
         /// <summary>Bootstrapper to the StreamThread.</summary>
         private void StartThread() {
             if (this.PlaybackThread == null) {
@@ -353,7 +361,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                 }
 
                 // read the next chunk of data
-                int samplesRead = this.Reader.ReadSamples(this.VorbisBuffer, 0, this.VorbisBuffer.Length);
+                int samplesRead = this.Reader.ReadSamples(this.RawBuffer, 0, this.RawBuffer.Length);
 
                 // out of data and looping? reset the reader and read again
                 if (this.Reader.DecodedTime == this.Reader.TotalTime && this.IsLooped) {
@@ -364,6 +372,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                 int blockCheck = samplesRead % this.ValidBlockAlign;
                 int loops = 1;
 
+                // if the audio file is smaller than 500ms, calculate how many times it needs to be repeated.
                 if (this.shortMode) {
                     loops = 500 / this.Reader.TotalTime.Milliseconds;
                 }
@@ -371,12 +380,12 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                 if (samplesRead > 0) {
                     // Process through filter first
                     if (this.FilterEnabled) {
-                        this.Filter.Process(this.VorbisBuffer);
+                        this.Filter.Process(this.RawBuffer);
                     }
 
                     //Convert to bytes
                     for (int i = 0; i < samplesRead; i++) {
-                        short sValue = (short)Math.Max(Math.Min(short.MaxValue * this.VorbisBuffer[i], short.MaxValue), short.MinValue);
+                        short sValue = (short)Math.Max(Math.Min(short.MaxValue * this.RawBuffer[i], short.MaxValue), short.MinValue);
                         this.SampleBuffer[i * 2] = (byte)(sValue & 0xff);
                         this.SampleBuffer[i * 2 + 1] = (byte)((sValue >> 8) & 0xff);
                     }
