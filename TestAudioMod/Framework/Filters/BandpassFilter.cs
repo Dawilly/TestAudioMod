@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 
-namespace Pathoschild.Stardew.TestAudioMod.Framework {
+namespace Pathoschild.Stardew.TestAudioMod.Framework.Filters {
     internal class BandpassFilter : BiquadraticFilter {
         /// <summary>
         /// Constructor for a Band Pass Filter.

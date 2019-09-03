@@ -3,6 +3,7 @@ using System.Threading;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using NVorbis;
+using Pathoschild.Stardew.TestAudioMod.Framework.Filters;
 using Pathoschild.Stardew.TestAudioMod.Framework.OggFile;
 using Pathoschild.Stardew.TestAudioMod.Framework.WaveFile;
 

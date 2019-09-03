@@ -23,8 +23,11 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework
         /// <remarks>Since this is just a quick prototype, this doesn't handle caching and such for audio files.</remarks>
         public static T ExtendedLoad<T>(this IContentHelper content, string key, ContentSource source = ContentSource.ModFolder)
         {
+            // check filetype
+            FileType type = GetAudioType(key);
+
             // ignore non-audio files
-            if (source != ContentSource.ModFolder || IsAudioFile(key) != true)
+            if (source != ContentSource.ModFolder || type == FileType.Unknown)
                 return content.Load<T>(key, source);
 
             // get mod file
@@ -36,26 +39,22 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework
             // load unpacked audio file
             if (typeof(T) != typeof(IModCue) && typeof(T) != typeof(ICue))
                 throw new ContentLoadException($"Failed loading asset '{key}' from content manager: can't read file with extension '{file.Extension}' as type '{typeof(T)}'; must be type '{typeof(ICue)}' or '{typeof(IModCue)}'.");
-            SoundEffectCue effect = new SoundEffectCue(file.Name, file.FullName, GetAudioType(key));
+            SoundEffectCue effect = new SoundEffectCue(file.Name, file.FullName, type);
             return (T)(object)effect;
         }
 
-        private static bool IsAudioFile(string key) {
-            if (key?.Trim().EndsWith(".ogg", StringComparison.InvariantCultureIgnoreCase) == true) return true;
-            if (key?.Trim().EndsWith(".wav", StringComparison.InvariantCultureIgnoreCase) == true) return true;
-            return false;
-        }
-
+        /*********
+        ** Private methods
+        *********/
+        /// <summary>Determines the audio file type.</summary>
+        /// <param name="key">The asset key to fetch.</param>
+        /// <returns>The enumeration value <see cref="FileType"/>.</returns>
         private static FileType GetAudioType(string key) {
             if (key?.Trim().EndsWith(".ogg", StringComparison.InvariantCultureIgnoreCase) == true) return FileType.Ogg;
             if (key?.Trim().EndsWith(".wav", StringComparison.InvariantCultureIgnoreCase) == true) return FileType.Wave;
             return FileType.Unknown;
         }
 
-
-        /*********
-        ** Private methods
-        *********/
         /// <summary>Use reflection to get the value of a private field on an instance.</summary>
         /// <typeparam name="T">The expected field value.</typeparam>
         /// <param name="parent">The object to extend.</param>

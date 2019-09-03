@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 // By David Weil (SgtPickles)
-namespace Pathoschild.Stardew.TestAudioMod.Framework {
+namespace Pathoschild.Stardew.TestAudioMod.Framework.Filters {
     /// <summary>
     /// This class represents a second order (different equation) recurisve linear filter.
     /// It contains two poles (two zeroes in the denominator) and two zeroes (two zeroes in the numerator)
