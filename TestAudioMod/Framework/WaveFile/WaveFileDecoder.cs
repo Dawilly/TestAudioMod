@@ -21,8 +21,6 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework.WaveFile {
         public byte[] DataId { get; set; }
         public int DataChunkSize { get; set; }
 
-        public int TotalSampleCount => this.DataChunkSize / (this.BitDepth / 8);
-
         public bool Initialize(BinaryReader reader) {
             if (reader == null) return false;
             try {
@@ -52,14 +50,10 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework.WaveFile {
             return true;
         }
 
-        public void ReadSamples() {
-
-        }
-
-        float convertInt16ToFloat(byte firstByte, byte secondByte) {
-            //Int16[] asInt16 = new Int16[samps];
-            //Buffer.BlockCopy(byteArray, 0, asInt16, 0, bytes);
-            //asFloat = Array.ConvertAll(asInt16, e => e / (float)Int16.MaxValue);
+        public void ReadRawSamples(BinaryReader reader, short[] raw, int count) {
+            for (int i = 0; i < count; i++) {
+                raw[i] = reader.ReadInt16();
+            }
         }
     }
 }

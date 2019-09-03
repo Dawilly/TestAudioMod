@@ -64,11 +64,11 @@ namespace Pathoschild.Stardew.TestAudioMod
                     break;
 
                 case SButton.D2:
-                    this.SetAudio(this.Source, "SinWave"); // supports Pitch
+                    this.SetAudio(this.Source, "SinWave.ogg"); // supports Pitch
                     break;
 
                 case SButton.D3:
-                    this.SetAudio(this.Source, "wind"); // supports Frequency; GameContent cue only works after loading a save
+                    this.SetAudio(this.Source, "wind.ogg"); // supports Frequency; GameContent cue only works after loading a save
                     if (this.Source == ContentSource.ModFolder) {
                         IModCue cue = (IModCue)this.Cue;
                         cue.EnableFilter(FilterType.LowPass, 3000, 0.707);
@@ -76,19 +76,23 @@ namespace Pathoschild.Stardew.TestAudioMod
                     break;
 
                 case SButton.D4:
-                    this.SetAudio(this.Source, "stillnessInTheRain"); // mod sound only
+                    this.SetAudio(this.Source, "stillnessInTheRain.ogg"); // mod sound only
                     break;
 
                 case SButton.D5:
-                    this.SetAudio(this.Source, "flute");
+                    this.SetAudio(this.Source, "flute.ogg");
                     break;
 
                 case SButton.D6:
-                    this.SetAudio(this.Source, "rain");
+                    this.SetAudio(this.Source, "rain.ogg");
                     if (this.Source == ContentSource.ModFolder) {
                         IModCue cue = (IModCue)this.Cue;
                         cue.EnableFilter(FilterType.LowPass, 20000, 2.90);
                     }
+                    break;
+
+                case SButton.D7:
+                    this.SetAudio(this.Source, "stillnessInTheRain.wav"); // Support wav reading.
                     break;
 
                 // set frequency
@@ -156,7 +160,7 @@ namespace Pathoschild.Stardew.TestAudioMod
 
                     case ContentSource.ModFolder:
                         {
-                            IModCue sound = this.Helper.Content.ExtendedLoad<IModCue>($"assets/{cueName}.ogg");
+                            IModCue sound = this.Helper.Content.ExtendedLoad<IModCue>($"assets/{cueName}");
                             sound.IsLooped = true;
                             this.Cue = sound;
                         }

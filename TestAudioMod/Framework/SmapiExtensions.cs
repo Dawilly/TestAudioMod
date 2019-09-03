@@ -24,7 +24,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework
         public static T ExtendedLoad<T>(this IContentHelper content, string key, ContentSource source = ContentSource.ModFolder)
         {
             // ignore non-audio files
-            if (source != ContentSource.ModFolder || key?.Trim().EndsWith(".ogg", StringComparison.InvariantCultureIgnoreCase) != true)
+            if (source != ContentSource.ModFolder || IsAudioFile(key) != true)
                 return content.Load<T>(key, source);
 
             // get mod file
@@ -36,8 +36,20 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework
             // load unpacked audio file
             if (typeof(T) != typeof(IModCue) && typeof(T) != typeof(ICue))
                 throw new ContentLoadException($"Failed loading asset '{key}' from content manager: can't read file with extension '{file.Extension}' as type '{typeof(T)}'; must be type '{typeof(ICue)}' or '{typeof(IModCue)}'.");
-            SoundEffectCue effect = new SoundEffectCue(file.Name, file.FullName);
+            SoundEffectCue effect = new SoundEffectCue(file.Name, file.FullName, GetAudioType(key));
             return (T)(object)effect;
+        }
+
+        private static bool IsAudioFile(string key) {
+            if (key?.Trim().EndsWith(".ogg", StringComparison.InvariantCultureIgnoreCase) == true) return true;
+            if (key?.Trim().EndsWith(".wav", StringComparison.InvariantCultureIgnoreCase) == true) return true;
+            return false;
+        }
+
+        private static FileType GetAudioType(string key) {
+            if (key?.Trim().EndsWith(".ogg", StringComparison.InvariantCultureIgnoreCase) == true) return FileType.Ogg;
+            if (key?.Trim().EndsWith(".wav", StringComparison.InvariantCultureIgnoreCase) == true) return FileType.Wave;
+            return FileType.Unknown;
         }
 
 

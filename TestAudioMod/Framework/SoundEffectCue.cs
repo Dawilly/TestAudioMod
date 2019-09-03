@@ -3,6 +3,8 @@ using System.Threading;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using NVorbis;
+using Pathoschild.Stardew.TestAudioMod.Framework.OggFile;
+using Pathoschild.Stardew.TestAudioMod.Framework.WaveFile;
 
 namespace Pathoschild.Stardew.TestAudioMod.Framework {
     /// <summary>An audio cue which wraps an Ogg Vorbis file.</summary>
@@ -12,7 +14,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         ** Fields
         *********/
         /// <summary>The underlying Ogg Vorbis audio reader.</summary>
-        private readonly VorbisReader Reader;
+        private readonly ISoundFileReader Reader;
 
         /// <summary>The underlying sound effect.</summary>
         private readonly DynamicSoundEffectInstance Effect;
@@ -117,10 +119,10 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         /// <summary>Construct an instance.</summary>
         /// <param name="name">The global name for the audio clip.</param>
         /// <param name="path">The absolute path to the <c>.ogg</c> file to load.</param>
-        public SoundEffectCue(string name, string path) {
+        public SoundEffectCue(string name, string path, FileType type) {
             this.Name = name;
 
-            this.Reader = new VorbisReader(path);
+            this.Reader = this.SetReader(path, type);
             this.Effect = new DynamicSoundEffectInstance(this.Reader.SampleRate, (AudioChannels)this.Reader.Channels);
 
             this.SampleBuffer = new byte[this.Effect.GetSampleSizeInBytes(TimeSpan.FromMilliseconds(500))];
@@ -129,6 +131,16 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
 
             this.Effect.BufferNeeded += (s, e) => this.NeedBufferHandle.Set(); // when a buffer is needed, set our handle so the helper thread will read in more data
             this.ValidBlockAlign = (this.Reader.Channels * SoundEffectCue.BitDepth) / 8;
+        }
+
+        private ISoundFileReader SetReader(string path, FileType type) {
+            switch (type) {
+                case FileType.Ogg:
+                    return new OggReader(path);
+                case FileType.Wave:
+                    return new WaveReader(path);
+            }
+            return null;
         }
 
         /// <summary>Free, release, and reset unmanaged resources.</summary>
@@ -172,7 +184,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                         if (!this.Effect.IsDisposed)
                             this.Effect.Stop();
 
-                        this.Reader.DecodedTime = TimeSpan.Zero;
+                        this.Reader.Reset();
 
                         if (this.PlaybackThread != null) {
                             // set the handle to stop our thread
@@ -345,7 +357,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
 
                 // out of data and looping? reset the reader and read again
                 if (this.Reader.DecodedTime == this.Reader.TotalTime && this.IsLooped) {
-                    this.Reader.DecodedTime = TimeSpan.Zero;
+                    this.Reader.Reset();
                 }
 
                 // Check to see if we're consuming the correct size of data chunks.
