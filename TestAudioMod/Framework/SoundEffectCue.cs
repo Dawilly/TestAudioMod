@@ -142,8 +142,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
 
         /// <summary>Begin playing the audio.</summary>
         public void Play() {
-            this.Stop(AudioStopOptions.Immediate);
-            //this.Effect.IsLooped = true;
+            this.Stop(AudioStopOptions.Immediate, false);
             lock (this.Effect)
                 this.Effect.Play();
 
@@ -165,6 +164,13 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         /// <summary>Stop the audio playback, if applicable.</summary>
         /// <param name="options">When to stop the audio.</param>
         public void Stop(AudioStopOptions options) {
+            this.Stop(options, true);
+        }
+
+        /// <summary>Stop the audio playback, if applicable.</summary>
+        /// <param name="options">When to stop the audio.</param>
+        /// <param name="forceClose">Immediately closes the audio file when stopped.</param>
+        public void Stop(AudioStopOptions options, bool forceClose) {
             lock (this.Effect) {
                 switch (options) {
                     case AudioStopOptions.AsAuthored:
@@ -176,7 +182,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
                         if (!this.Effect.IsDisposed)
                             this.Effect.Stop();
 
-                        this.Reader.Reset();
+                        this.Reader.Reset(forceClose);
 
                         if (this.PlaybackThread != null) {
                             // set the handle to stop our thread
@@ -366,7 +372,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
 
                 // out of data and looping? reset the reader and read again
                 if (this.Reader.DecodedTime == this.Reader.TotalTime && this.IsLooped) {
-                    this.Reader.Reset();
+                    this.Reader.Reset(false);
                 }
 
                 // Check to see if we're consuming the correct size of data chunks.

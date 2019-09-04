@@ -30,6 +30,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework {
         int ReadSamples(float[] buffer, int offset, int count);
 
         /// <summary>Resets the audio file back to the beginning.</summary>
-        void Reset();
+        /// <param name="closeFile">Immediately close the file upon reset.</param>
+        void Reset(bool closeFile);
     }
 }

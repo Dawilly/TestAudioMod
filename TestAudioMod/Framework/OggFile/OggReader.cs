@@ -57,7 +57,7 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework.OggFile {
         }
 
         /// <summary>Resets the audio file back to the beginning.</summary>
-        public void Reset() {
+        public void Reset(bool forceClose) {
             this.Reader.DecodedTime = TimeSpan.Zero;
         }
     }

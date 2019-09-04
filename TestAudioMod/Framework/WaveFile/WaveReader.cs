@@ -100,9 +100,11 @@ namespace Pathoschild.Stardew.TestAudioMod.Framework.WaveFile {
         }
 
         /// <summary>Resets the audio file back to the beginning.</summary>
-        public void Reset() {
+        public void Reset(bool forceClose) {
             this.decodedSamples = 0;
             this.wavFile.BaseStream.Position = this.sampleStartPos;
+            if (forceClose)
+                this.wavFile.Close();
         }
 
         /*********
